@@ -14,11 +14,31 @@ public class ServerTCP{
 		while(true){
 			//Esperando la Conexion
 			try{
-				System.out.println("Esperando Conexion ... "+System.currentTimeMillis());
+				System.out.println("Iniciando Conexion ... "+System.currentTimeMillis());
 				socket = serverSocket.accept();
-				System.out.println("Conexion desde IP: "+socket.getInetAddress()+" a las "+System.currentTimeMillis());
-				ois = new ObjectInputStream(socket.getInputStream());
-				oos = new ObjectOutputStream(socket.getOutputStream());
+
+				(new ResponseChannel(socket)).start();
+				
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
+
+	static class ResponseChannel extends Thread{
+		private Socket s = null;
+		private ObjectInputStream ois = null;
+		private ObjectOutputStream oos = null; 
+
+		public ResponseChannel(Socket socket){
+			this.s = socket;
+		}
+
+		public void run(){
+			try{
+				System.out.println("Conexion desde IP: "+s.getInetAddress()+" a las "+System.currentTimeMillis());
+				ois = new ObjectInputStream(s.getInputStream());
+				oos = new ObjectOutputStream(s.getOutputStream());
 				String clientRequest = (String) ois.readObject();
 				String serverResponse = "Respuesta del Servidor a "+clientRequest+" <---";
 				oos.writeObject(serverResponse);
@@ -26,11 +46,14 @@ public class ServerTCP{
 			}catch(Exception e){
 				e.printStackTrace();
 			}finally{
-				if(oos != null){ oos.close(); }
-				if(ois != null){ ois.close(); }
-				if(socket != null){ socket.close(); }
+				try{
+					if(oos != null){ oos.close(); }
+					if(ois != null){ ois.close(); }
+					if(s != null){ s.close(); }	
+				}catch(Exception e){
+					e.printStackTrace();
+				}
 			}
 		}
-		
 	}
 }
